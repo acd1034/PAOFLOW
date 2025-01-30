@@ -343,7 +343,7 @@ def read_QE_wfc(data_controller, ik, ispin):
   eigs, eigv = np.linalg.eigh(ovp)
   assert (np.all(eigs>=0))
 
-  X = scipy.linalg.sqrtm(ovp)
+  X = scipy.linalg.sqrtm(ovp).astype(complex)
   owfc = np.linalg.solve(X.T, wfc) 
   
   wfc = np.array(wfc) * scalef
@@ -615,7 +615,7 @@ def ortho_atwfc_k(atwfc_k):
   
   # orthogonalize
   if True:
-    X = scipy.linalg.sqrtm(ovp)
+    X = scipy.linalg.sqrtm(ovp).astype(complex)
     oatwfc_k = np.linalg.solve(X.T, atwfc_k)
   else:
     eigs = 1.0/np.sqrt(eigs)
@@ -777,7 +777,7 @@ def read_VASP_wfc(data_controller, ik, ispin):
   eigs, eigv = np.linalg.eigh(ovp)
   assert (np.all(eigs >= 0))
 
-  X = scipy.linalg.sqrtm(ovp)
+  X = scipy.linalg.sqrtm(ovp).astype(complex)
   owfc = np.linalg.solve(X.T, wfc)
 
   gkspace = {'xk': xk, 'igwx': igwx, 'mill': mill, 'bg': bg, 'gamma_only': False}  # Gamma-only not supported yet
