@@ -61,7 +61,9 @@ def do_spin_texture ( data_controller ):
 
   sktxtaux = np.take(np.diagonal(sktxtaux,axis1=2,axis2=3), ind_plot, axis=2)
   sktxt = gather_full(np.ascontiguousarray(sktxtaux), attributes['npool'])
+  arrays['sktxt'] = sktxtaux
   sktxtaux = None
+  arrays['ind_plot'] = ind_plot
 
   if rank == 0:
     if 'kq' in arrays and E_k_full.shape[0] == arrays['kq'].shape[1]:
