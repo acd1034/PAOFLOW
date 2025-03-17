@@ -49,7 +49,7 @@ def do_rashba_edelstein (data_controller, ene, temperature, regularization, twoD
   for l in range(3):
     for m in range(3):
       kai_aux[:,l,m,:] = tau_const*St[:,l,:]*pksp[:,m,:]
-      j_aux[:,l,l,:] = tau_const*pksp[:,l,:]*pksp[:,l,:]   
+      j_aux[:,l,m,:] = tau_const*pksp[:,l,:]*pksp[:,m,:]
 
   kai_eaux = np.zeros((snktot,3,3,esize), dtype=float)
   j_eaux = np.zeros((snktot,3,3,esize), dtype=float)
@@ -69,7 +69,7 @@ def do_rashba_edelstein (data_controller, ene, temperature, regularization, twoD
     for l in range(3):
       for m in range(3):
         kai_eaux[:,l,m,i] = np.sum(kai_aux[:,l,m,:]*gaussian_smear, axis=1)
-        j_eaux[:,l,l,i] = np.sum(j_aux[:,l,l,:]*gaussian_smear, axis=1)
+        j_eaux[:,l,m,i] = np.sum(j_aux[:,l,m,:]*gaussian_smear, axis=1)
   kai_aux = None
   j_aux = None
 
