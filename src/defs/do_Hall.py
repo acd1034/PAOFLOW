@@ -24,7 +24,7 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-def do_spin_Hall ( data_controller, twoD, do_ac ):
+def do_spin_Hall ( data_controller, twoD, do_ac, deltap=0.05 ):
   from .perturb_split import perturb_split
   from .constants import ELECTRONVOLT_SI,ANGSTROM_AU,H_OVER_TPI,LL
 
@@ -64,7 +64,7 @@ def do_spin_Hall ( data_controller, twoD, do_ac ):
     #---------------------------------
     # Compute spin Berry curvature... 
     #---------------------------------
-    ene,shc,Om_k = do_Berry_curvature(data_controller, jksp_is, pksp_j)
+    ene,shc,Om_k = do_Berry_curvature(data_controller, jksp_is, pksp_j, deltap)
 
     if rank == 0:
       if twoD:
@@ -117,7 +117,7 @@ def do_spin_Hall ( data_controller, twoD, do_ac ):
       data_controller.write_file_row_col(fsigR, ene, sigxyr)
 
 
-def do_anomalous_Hall ( data_controller, do_ac ):
+def do_anomalous_Hall ( data_controller, do_ac, deltap=0.05 ):
   from .perturb_split import perturb_split
   from .constants import ELECTRONVOLT_SI,ANGSTROM_AU,H_OVER_TPI,LL
 
@@ -150,7 +150,7 @@ def do_anomalous_Hall ( data_controller, do_ac ):
       for ispin in range(dks[4]):
         pksp_i[ik,:,:,ispin],pksp_j[ik,:,:,ispin] = perturb_split(arry['dHksp'][ik,ipol,:,:,ispin], arry['dHksp'][ik,jpol,:,:,ispin], arry['v_k'][ik,:,:,ispin], arry['degen'][ispin][ik])
 
-    ene,ahc,Om_k = do_Berry_curvature(data_controller, pksp_i, pksp_j)
+    ene,ahc,Om_k = do_Berry_curvature(data_controller, pksp_i, pksp_j, deltap)
 
     if rank == 0:
       cgs_conv = 1.0e8*ANGSTROM_AU*ELECTRONVOLT_SI**2/(H_OVER_TPI*attr['omega'])
@@ -188,7 +188,7 @@ def do_anomalous_Hall ( data_controller, do_ac ):
       fsigR = 'MCDr_%s%s.dat'%cart_indices
       data_controller.write_file_row_col(fsigR, ene, sigxyr)
 
-def do_Berry_curvature ( data_controller, jksp, pksp ):
+def do_Berry_curvature ( data_controller, jksp, pksp, deltap=0.05 ):
   #----------------------
   # Compute spin Berry curvature
   #----------------------
@@ -204,7 +204,6 @@ def do_Berry_curvature ( data_controller, jksp, pksp ):
   # Compute only Omega_z(k)
   Om_znkaux = np.zeros((snktot,nawf), dtype=float)
 
-  deltap = 0.05
   for ik in range(snktot):
     E_nm = (arrays['E_k'][ik,:,0] - arrays['E_k'][ik,:,0][:,None])**2 + deltap**2
     E_nm[np.where(E_nm<1.e-4)] = np.inf
@@ -213,7 +212,7 @@ def do_Berry_curvature ( data_controller, jksp, pksp ):
 
   attributes['emaxH'] = np.amin(np.array([attributes['shift'],attributes['emaxH']]))
   ### Hardcoded 'de'
-  esize = 500
+  esize = 501
   ene = np.linspace(attributes['eminH'], attributes['emaxH'], esize)
 
   Om_zkaux = np.zeros((snktot,esize), dtype=float)
