@@ -106,24 +106,27 @@ def calc_chi2(data_controller = None,tensor = None, prop=None):
     Om_zk = gather_full(Om_zkaux, attr['npool'])
     Om_zkaux = None
     if rank == 0:
-        xzy = ['x','y','z']
         if prop == 'shc':
             Om_zk *= attr['cgs_conv']
             Om_zk = np.sum(Om_zk, axis=0)/float(attr['nkpnts'])     
-            fname = f'SHC_eqn5_{xzy[spol]}_{xzy[jpol]}{xzy[ipol]}.dat' 
-            data_controller.write_file_row_col(fname, ene, Om_zk)
-            
         if prop == 'ree':
             Om_zk *= bohr_to_cm
             Om_zk = np.sum(Om_zk, axis=0)/float(attr['nkpnts'])     
-            fname = f'REE_eqn5_{xzy[spol]}{xzy[ipol]}.dat' 
-            data_controller.write_file_row_col(fname, ene, Om_zk)
-            
         if prop == 'cond':
             Om_zk *= attr['cgs_conv']
             Om_zk = np.sum(Om_zk, axis=0)/float(attr['nkpnts'])     
-            fname = f'AHE_eqn5_{xzy[cpol]}{xzy[ipol]}.dat' 
-            data_controller.write_file_row_col(fname, ene, Om_zk)          
+    xzy = ['x','y','z']
+    if prop == 'shc':
+        fname = f'SHC_eqn5_{xzy[spol]}_{xzy[jpol]}{xzy[ipol]}.dat' 
+        data_controller.write_file_row_col(fname, ene, Om_zk)
+        
+    if prop == 'ree':
+        fname = f'REE_eqn5_{xzy[spol]}{xzy[ipol]}.dat' 
+        data_controller.write_file_row_col(fname, ene, Om_zk)
+        
+    if prop == 'cond':
+        fname = f'AHE_eqn5_{xzy[cpol]}{xzy[ipol]}.dat' 
+        data_controller.write_file_row_col(fname, ene, Om_zk)          
     ene=Om_zk=None
         
 def spin_current(data_controller = None,tensor= None):
