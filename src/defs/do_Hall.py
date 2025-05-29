@@ -24,7 +24,7 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
-def do_spin_Hall ( data_controller, twoD, do_ac, deltap=0.05 ):
+def do_spin_Hall ( data_controller, twoD, do_ac, deltap=0.01 ):
   from .perturb_split import perturb_split
   from .constants import ELECTRONVOLT_SI,ANGSTROM_AU,H_OVER_TPI,LL
 
@@ -117,7 +117,7 @@ def do_spin_Hall ( data_controller, twoD, do_ac, deltap=0.05 ):
       data_controller.write_file_row_col(fsigR, ene, sigxyr)
 
 
-def do_anomalous_Hall ( data_controller, do_ac, deltap=0.05 ):
+def do_anomalous_Hall ( data_controller, do_ac, deltap=0.01 ):
   from .perturb_split import perturb_split
   from .constants import ELECTRONVOLT_SI,ANGSTROM_AU,H_OVER_TPI,LL
 
@@ -188,7 +188,7 @@ def do_anomalous_Hall ( data_controller, do_ac, deltap=0.05 ):
       fsigR = 'MCDr_%s%s.dat'%cart_indices
       data_controller.write_file_row_col(fsigR, ene, sigxyr)
 
-def do_Berry_curvature ( data_controller, jksp, pksp, deltap=0.05 ):
+def do_Berry_curvature ( data_controller, jksp, pksp, deltap=0.01 ):
   #----------------------
   # Compute spin Berry curvature
   #----------------------
