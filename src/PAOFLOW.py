@@ -265,7 +265,6 @@ class PAOFLOW:
     Calculate the projections on the atomic basis provided by the pseudopotential or 
     on the all-electron internal basis sets.
     Replaces projwfc.
-    TODO  * add spin-orbit and non-collinear cases
     '''
 
     from .defs.do_atwfc_proj import build_pswfc_basis_all
@@ -400,8 +399,6 @@ class PAOFLOW:
     #  Note expand_wedge is still required for VASP even not using symmetry.
     #  This is because we need find_equiv_k() in paosym to have the correct k-point ordering.
 
-
-
     if attr['symmetrize'] and attr['acbn0']:
       if rank == 0:
         print('WARNING: Non-ortho is currently not supported with pao_sym. Use nosym=.true., noinv=.true.')
@@ -429,7 +426,6 @@ class PAOFLOW:
       if attr['abort_on_exception']:
         raise e
     self.report_module_time('k -> R')
-
 
 
   def minimal(self,R=False):
@@ -560,17 +556,17 @@ class PAOFLOW:
     self.report_module_time('Bands')
 
 
-
-  def adhoc_spin_orbit ( self, naw=[1], phi=.0, theta=.0, lambda_p=[.0], lambda_d=[.0], orb_pseudo=['s']  ):
+  def adhoc_spin_orbit ( self, naw=[1], phi=.0, theta=.0,  lambda_p=[.0], lambda_d=[.0], soc_strengh={}, soc_species=True ):
     '''
     Include spin-orbit coupling  
 
     Arguments:
         theta (float)             :  Spin orbit angle
         phi (float)               :  Spin orbit azimuthal angle
+        soc_strengh(dict)         :  p and d orbitals SOC strengh for each species 
+        If soc_species = False
         lambda_p (list of floats) :  p orbitals SOC strengh for each atom 
         lambda_d (list of float)  :  d orbitals SOC strengh for each atom
-        orb_pseudo (list of str)  :  Orbitals included in the Pseudopotential
 
     Returns:
         None
@@ -583,19 +579,35 @@ class PAOFLOW:
 
     if 'phi' not in attr: attr['phi'] = phi
     if 'theta' not in attr: attr['theta'] = theta
-    if 'lambda_p' not in arry: arry['lambda_p'] = lambda_p[:]
-    if 'lambda_d' not in arry: arry['lambda_d'] = lambda_d[:]
-    if 'orb_pseudo' not in arry: arry['orb_pseudo'] = orb_pseudo[:]
-    if 'naw' not in arry: arry['naw'] = naw[:]
 
-    natoms = attr['natoms']
-    if len(arry['lambda_p']) != natoms or len(arry['lambda_p']) != natoms:
-      print('\'lambda_p\' and \'lambda_d\' must contain \'natoms\' (%d) elements each.'%natoms)
-      self.comm.Abort()
+    if (soc_species==True):
+      lambda_p=[]
+      lambda_d=[]
+      for i in range (len(arry['atoms'])):
+        lambda_p.append(soc_strengh[arry['atoms'][i]][0])
+        lambda_d.append(soc_strengh[arry['atoms'][i]][1])
+      arry['lambda_p']=lambda_p
+      arry['lambda_d']=lambda_d
+    else:
+      if 'lambda_p' not in arry: arry['lambda_p'] = lambda_p[:]
+      if 'lambda_d' not in arry: arry['lambda_d'] = lambda_d[:]
 
+    try: 
+      if internal or attr['dft']=='VASP':
+        print('Ad-hoc-SOC with inernal basis not implemented')
+    except:
+      self.data_controller.build_arrays_adhoc_soc()
+
+
+    do_spin_orbit_H(self.data_controller)
+
+    # Rezising arrays
     attr['bnd'] *= 2
     attr['dftSO'] = True
-    do_spin_orbit_H(self.data_controller)
+    attr['nspin'] = 1
+    attr['nawf'] = arry['HRs'].shape[0]
+    self.report_module_time('adhoc_spin_orbit')
+
 
 
 
@@ -955,6 +967,7 @@ mo    '''
     from .defs.do_momentum import do_momentum
     from .defs.communication import gather_scatter
     import numpy as np 
+    from .defs.do_atwfc_proj import build_pswfc_basis_all, build_aewfc_basis
 
     arrays,attr = self.data_controller.data_dicts()
 
@@ -971,6 +984,16 @@ mo    '''
       snawf,_,nspin = arrays['Hksp'].shape
       arrays['Hksp'] = np.reshape(arrays['Hksp'], (snawf,attr['nk1'],attr['nk2'],attr['nk3'],nspin))
 
+      try:                         
+        arrays['basis'],_ = build_pswfc_basis_all(self.data_controller)     
+      except:                                                              
+        arrays['basis'],_ = build_aewfc_basis(self.data_controller)    
+
+      arrays['Dnm'] = np.empty((attr['nawf'],attr['nawf'],3))
+      for i in range(3):
+        for n in range(attr['nawf']):
+          for m in range(attr['nawf']):
+              arrays['Dnm'][n,m,i] = arrays['basis'][n]['tau'][i] - arrays['basis'][m]['tau'][i]
       do_gradient(self.data_controller)
 
       if not band_curvature:
@@ -983,6 +1006,10 @@ mo    '''
       arrays['dHksp'] = np.moveaxis(gather_scatter(arrays['dHksp'],1,attr['npool']), 0, 2)
       arrays['dHksp'] = np.reshape(arrays['dHksp'], (snktot,3,nawf,nawf,nspin), order="C")
 
+      for nk in range(snktot):
+        for i in range(3):
+          for s in range(nspin):
+            arrays['dHksp'][nk,i,:,:,s] = (arrays['dHksp'][nk,i,:,:,s] + np.conj(arrays['dHksp'][nk,i,:,:,s].T))/2.
       if band_curvature:
         from .defs.do_band_curvature import do_band_curvature
         do_band_curvature(self.data_controller)
@@ -1411,7 +1438,7 @@ mo    '''
     self.report_module_time('Transport')
 
 
-  def dielectric_tensor ( self, delta=0.1, intrasmear=0.05, emin=0., emax=10., ne=501, d_tensor=None,degauss=0.1):
+  def dielectric_tensor ( self, delta=0.1, intrasmear=0.05, emin=0., emax=10., ne=501, d_tensor=None, degauss=0.1, from_wfc=None):
     '''
     Calculate the Dielectric Tensor
 
@@ -1449,7 +1476,7 @@ mo    '''
     #-----------------------------------------------
     try:
       ene = np.linspace(emin, emax, ne)
-      do_dielectric_tensor(self.data_controller, ene)
+      do_dielectric_tensor(self.data_controller, ene, from_wfc)
     except Exception as e:
       self.report_exception('dielectric_tensor')
       if attr['abort_on_exception']:

@@ -33,10 +33,10 @@ def do_spin_orbit_H ( data_controller ):
   nawf,_,nk1,nk2,nk3,nspin = arry['HRs'].shape
 
   socStrengh = np.zeros((natoms,2), dtype=float)
-  socStrengh[:,0] = arry['lambda_p'][:]
-  socStrengh[:,1] = arry['lambda_d'][:]
+  socStrengh[:,0] = arry['lambda_p'][0:natoms]
+  socStrengh[:,1] = arry['lambda_d'][0:natoms]
 
-  HR_double = np.zeros((2*nawf,2*nawf,nk1,nk2,nk3,nspin), dtype=complex)
+  HR_double = np.zeros((2*nawf,2*nawf,nk1,nk2,nk3,1), dtype=complex)
 
   # nonmagnetic :  copy H at the upper (lower) left (right) of the double matrix HR_double
   if nspin == 1:
@@ -50,6 +50,7 @@ def do_spin_orbit_H ( data_controller ):
   offset = np.zeros(natoms, dtype=int)
   for i in range(1, natoms):
     offset[i] = offset[i-1] + norb_array[i-1]
+
 
   for n,norb in enumerate(norb_array):
     HR_soc_p = np.zeros((2*norb,2*norb), dtype=complex)  
@@ -328,6 +329,8 @@ def soc_d_sspd ( theta, phi, norb ):
   HR_soc[9,6] = np.conj(HR_soc[6,9])
   HR_soc[8,7] = np.conj(HR_soc[7,8])
   HR_soc[9,7] = np.conj(HR_soc[7,9])
+  HR_soc[9,8] = np.conj(HR_soc[8,9])        
+
 
   # Spin Down - Spin Down  part of the p-satets Hamiltonian
   HR_soc[15:20,15:20] = -HR_soc[5:10,5:10] 
@@ -367,3 +370,102 @@ def soc_d_sspd ( theta, phi, norb ):
 
   return HR_soc
  ################## END PSEUDOPOTENTIAL SSPD ##############################
+
+################## PSEUDOPOTENTIAL SSPPD ##############################
+def soc_p_ssppd ( theta, phi, norb ):
+
+  HR_soc = np.zeros((2*norb,2*norb), dtype=complex) 
+
+  sTheta,sPhi = np.sin(theta),np.sin(phi)
+  cTheta,cPhi = np.cos(theta),np.cos(phi)
+
+  # Spin Up - Spin Up  part of the p-satets Hamiltonian
+  HR_soc[5,6] = -0.5j * sTheta*sPhi
+  HR_soc[5,7] =  0.5j * sTheta*cPhi
+  HR_soc[6,7] = -0.5j * cTheta
+  HR_soc[6,5] = np.conj(HR_soc[5,6])
+  HR_soc[7,5] = np.conj(HR_soc[5,7])
+  HR_soc[7,6] = np.conj(HR_soc[6,7])
+  # Spin Down - Spin Down  part of the p-satets Hamiltonian
+  HR_soc[18:21,18:21] = -HR_soc[5:8,5:8] 
+  # Spin Up - Spin Down  part of the p-satets Hamiltonian
+  HR_soc[5,19] = -0.5 * complex(cPhi, cTheta*sPhi)
+  HR_soc[5,20] = -0.5 * complex(sPhi, -cTheta*cPhi)
+  HR_soc[6,20] =  0.5j * sTheta
+  HR_soc[6,18] = -HR_soc[5,19]
+  HR_soc[7,18] = -HR_soc[5,20]
+  HR_soc[7,19] = -HR_soc[6,20]
+  # Spin Down - Spin Up  part of the p-satets Hamiltonian
+  HR_soc[19,5] = np.conj(HR_soc[5,19])
+  HR_soc[20,5] = np.conj(HR_soc[5,20])
+  HR_soc[18,6] = np.conj(HR_soc[6,18])
+  HR_soc[20,6] = np.conj(HR_soc[6,20])
+  HR_soc[18,7] = np.conj(HR_soc[7,18])
+  HR_soc[19,7] = np.conj(HR_soc[7,19])
+
+  return HR_soc
+
+def soc_d_ssppd ( theta, phi, norb ):
+
+  HR_soc = np.zeros((2*norb,2*norb), dtype=complex)
+
+  sTheta,sPhi = np.sin(theta),np.sin(phi)
+  cTheta,cPhi = np.cos(theta),np.cos(phi)
+
+  s3 = cmath.sqrt(3.0)
+
+  #Spin Up - Spin Up  part of the d-satets Hamiltonian
+  HR_soc[8,9] = -s3 * 0.5j * sTheta * sPhi
+  HR_soc[8,10] =  s3 * 0.5j * sTheta * cPhi
+  HR_soc[9,10] = -0.5j * cTheta
+  HR_soc[9,11] = -0.5j * sTheta * sPhi
+  HR_soc[9,12] =  0.5j * sTheta * cPhi
+  HR_soc[10,11] = -0.5j * sTheta * cPhi
+  HR_soc[10,12] = -0.5j * sTheta * sPhi
+  HR_soc[11,12] = -1j * cTheta
+  HR_soc[9,8] = np.conj(HR_soc[8,9])
+  HR_soc[10,8] = np.conj(HR_soc[8,10])
+  HR_soc[10,9] = np.conj(HR_soc[9,10])
+  HR_soc[11,9] = np.conj(HR_soc[9,11])
+  HR_soc[12,9] = np.conj(HR_soc[9,12])
+  HR_soc[11,10] = np.conj(HR_soc[10,11])
+  HR_soc[12,10] = np.conj(HR_soc[10,12])
+  # Spin Down - Spin Down  part of the d-satets Hamiltonian
+  HR_soc[21:26,21:26] = -HR_soc[8:13,8:13] 
+  # Spin Up - Spin Down  part of the d-satets Hamiltonian
+  HR_soc[8,22]  = -s3 * 0.5 * complex(cPhi, cTheta*sPhi)
+  HR_soc[8,23]  = -s3 * 0.5 * complex(sPhi, -cTheta*cPhi)
+  HR_soc[9,23]  =  0.5j * sTheta
+  HR_soc[9,24]  = -0.5 * complex(cPhi, cTheta*sPhi)
+  HR_soc[9,25]  = -0.5 * complex(sPhi, -cTheta*cPhi)
+  HR_soc[10,24] =  0.5 * complex(sPhi, -cTheta*cPhi)
+  HR_soc[10,25] = -0.5 * complex(cPhi, cTheta*sPhi)
+  HR_soc[11,25] =  1j * sTheta
+  HR_soc[9,21]  = -HR_soc[8,22] 
+  HR_soc[10,21] = -HR_soc[8,23] 
+  HR_soc[10,22] = -HR_soc[9,23]
+  HR_soc[11,22] = -HR_soc[9,24] 
+  HR_soc[12,22] = -HR_soc[9,25] 
+  HR_soc[11,23] = -HR_soc[10,24] 
+  HR_soc[12,23] = -HR_soc[10,25] 
+  HR_soc[12,24] = -HR_soc[11,25] 
+  # Spin Down - Spin Up  part of the d-satets Hamiltonian
+  HR_soc[22,8]  = np.conj(HR_soc[8,22]) 
+  HR_soc[23,8]  = np.conj(HR_soc[8,23])
+  HR_soc[23,9]  = np.conj(HR_soc[9,23])   
+  HR_soc[24,9]  = np.conj(HR_soc[9,24])   
+  HR_soc[25,9]  = np.conj(HR_soc[9,25])   
+  HR_soc[24,10] = np.conj(HR_soc[10,24]) 
+  HR_soc[25,10] = np.conj(HR_soc[10,25])    
+  HR_soc[25,11] = np.conj(HR_soc[11,25])    
+  HR_soc[21,9]  = np.conj(HR_soc[9,21])
+  HR_soc[21,10] = np.conj(HR_soc[10,21])
+  HR_soc[22,10] = np.conj(HR_soc[10,22])
+  HR_soc[22,11] = np.conj(HR_soc[11,22])
+  HR_soc[22,12] = np.conj(HR_soc[12,22])
+  HR_soc[23,11] = np.conj(HR_soc[11,23])
+  HR_soc[23,12] = np.conj(HR_soc[12,23])
+
+  return HR_soc
+################## END PSEUDOPOTENTIAL SSPPD ##############################
+

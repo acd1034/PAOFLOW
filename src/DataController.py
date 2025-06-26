@@ -154,6 +154,46 @@ class DataController:
       print(self.data_arrays.keys())
       print('\n')
 
+  def build_arrays_adhoc_soc ( self ):
+    '''
+    Construc arrays needed for the adhoc_spin_orbit routine
+
+    Arguments:
+        None
+
+    Returns:
+        None
+    '''
+      
+    arry,attr = self.data_dicts()
+    orb=[]
+    naw=[]
+
+    for i in range (len(arry['atoms'])):
+      if (arry['shells'][arry['atoms'][i]] == [0]):
+        naw.append(1)
+        orb.append('s')
+      if (arry['shells'][arry['atoms'][i]] == [0,1]):
+        naw.append(4)
+        orb.append('sp')
+      if (arry['shells'][arry['atoms'][i]] == [0,1,2]):
+        naw.append(9)
+        orb.append('spd')
+      if (arry['shells'][arry['atoms'][i]] == [1,0]):
+        naw.append(4)
+        orb.append('ps')
+      if (arry['shells'][arry['atoms'][i]] == [0,0,1,2]):
+        naw.append(10)
+        orb.append('sspd')
+      if (arry['shells'][arry['atoms'][i]] == [0,0,1]):
+        naw.append(5)
+        orb.append('ssp')
+      if (arry['shells'][arry['atoms'][i]] == [0,0,1,1,2]):
+        naw.append(13)
+        orb.append('ssppd')
+
+    arry['orb_pseudo'] = orb
+    arry['naw'] = naw
 
   def add_default_arrays ( self ):
     import numpy as np
